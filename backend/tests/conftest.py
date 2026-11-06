@@ -18,6 +18,13 @@ _engine = create_engine(_url)
 
 
 @pytest.fixture
+def db_engine():
+    """The shared engine itself, for tests that need multiple independent
+    DB connections/sessions at once (e.g. simulating real concurrency)."""
+    return _engine
+
+
+@pytest.fixture
 def db_session():
     """A real DB session, wiped clean after each test so tests don't leak
     rows into each other (deleted in FK-safe order: children before parents)."""

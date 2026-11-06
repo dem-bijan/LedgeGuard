@@ -20,6 +20,7 @@ class Transaction(Base):
     __tablename__ = "transactions"
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True , default=uuid.uuid4)
+    idempotency_key: Mapped[str | None] = mapped_column(unique=True, nullable=True)
     description: Mapped[str | None] 
     created_at: Mapped[datetime.datetime] = mapped_column(DateTime(timezone=True),server_default=func.now())
 
