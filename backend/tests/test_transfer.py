@@ -12,8 +12,11 @@ from decimal import Decimal
 
 import pytest
 
+import uuid
+
 from app.ledger import (
     InsufficientFundsException,
+    NotAccountOwnerException,
     create_transaction,
     get_balance,
     transfer,
@@ -35,8 +38,8 @@ def test_transfer_moves_money_and_is_idempotent_on_replay(db_session, make_accou
     _fund(db_session, make_account, alice, Decimal("100.00"), "seed-1")
     db_session.commit()
 
-    txn1 = transfer(db_session, "transfer-key", alice.id, bob.id, Decimal("30.00"))
-    txn2 = transfer(db_session, "transfer-key", alice.id, bob.id, Decimal("30.00"))
+    txn1 = transfer(db_session, "transfer-key", alice.rib, bob.rib, alice.owner_id, Decimal("30.00"))
+    txn2 = transfer(db_session, "transfer-key", alice.rib, bob.rib, alice.owner_id, Decimal("30.00"))
 
     assert txn1.id == txn2.id  # replay, not a second transfer
     assert get_balance(db_session, alice.id) == Decimal("70.00")
@@ -50,7 +53,18 @@ def test_transfer_rejects_insufficient_funds(db_session, make_account):
     db_session.commit()
 
     with pytest.raises(InsufficientFundsException):
-        transfer(db_session, "transfer-key-2", alice.id, bob.id, Decimal("50.00"))
+        transfer(db_session, "transfer-key-2", alice.rib, bob.rib, alice.owner_id, Decimal("50.00"))
+
+
+def test_transfer_rejects_non_owner(db_session, make_account):
+    alice = make_account("Alice")
+    bob = make_account("Bob")
+    _fund(db_session, make_account, alice, Decimal("100.00"), "seed-owner-check")
+    db_session.commit()
+
+    someone_else_id = uuid.uuid4()
+    with pytest.raises(NotAccountOwnerException):
+        transfer(db_session, "transfer-key-owner", alice.rib, bob.rib, someone_else_id, Decimal("10.00"))
 
 
 def test_concurrent_transfers_cannot_overdraw_account(db_session, db_engine, make_account):
@@ -69,19 +83,19 @@ def test_concurrent_transfers_cannot_overdraw_account(db_session, db_engine, mak
     barrier = threading.Barrier(2)
     results = {}
 
-    def attempt(name, to_account_id, key):
+    def attempt(name, to_rib, key):
         session = Session(db_engine)
         try:
             barrier.wait()  # force both threads to hit the DB at the same moment
-            txn = transfer(session, key, alice.id, to_account_id, Decimal("80.00"))
+            txn = transfer(session, key, alice.rib, to_rib, alice.owner_id, Decimal("80.00"))
             results[name] = ("success", txn.id)
         except InsufficientFundsException:
             results[name] = ("rejected", None)
         finally:
             session.close()
 
-    t1 = threading.Thread(target=attempt, args=("t1", bob.id, "race-key-1"))
-    t2 = threading.Thread(target=attempt, args=("t2", carol.id, "race-key-2"))
+    t1 = threading.Thread(target=attempt, args=("t1", bob.rib, "race-key-1"))
+    t2 = threading.Thread(target=attempt, args=("t2", carol.rib, "race-key-2"))
     t1.start()
     t2.start()
     t1.join()

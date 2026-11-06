@@ -7,8 +7,9 @@ from decimal import Decimal
 
 class TransferRequest(BaseModel):
     idempotency_key: str
-    from_account_id: uuid.UUID
-    to_account_id: uuid.UUID
+    
+    from_rib: str
+    to_rib: str
     amount: Decimal = Field(gt=Decimal(0))
     description: str | None = None
 
@@ -35,7 +36,7 @@ class LoginRequest(BaseModel):
 
 class LoginResponse(BaseModel):
     access_token: str
-    
+
 
 class RegisterResponse(BaseModel):
     id: uuid.UUID

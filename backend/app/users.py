@@ -3,6 +3,10 @@ from sqlalchemy.exc import IntegrityError
 
 from app.models import User
 from app.auth import create_access_token, hash_password, verify_password
+from fastapi.security import OAuth2PasswordBearer
+
+
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
 
 
 def register(session , full_name , email , password , role) -> User:

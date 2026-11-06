@@ -28,7 +28,7 @@ def create_access_token(data:dict , expires_minuts: int=30) -> str :
     return jwt.encode(to_encode , SECRET_KEY,algorithm="HS256")
 
 
-def decode_access_token(token:str) -> dict | None:
+def decode_access_token(token:str) -> dict :
     return jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
 
 

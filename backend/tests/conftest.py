@@ -7,6 +7,7 @@ from dotenv import load_dotenv
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 
+from app.auth import create_access_token
 from app.models import Account, Base, User
 from app.rib import generate_rib
 
@@ -63,3 +64,16 @@ def make_account(db_session):
         return account
 
     return _make
+
+
+@pytest.fixture
+def auth_header():
+    """Factory: auth_header(account) -> a real Authorization header for
+    that account's owner, without needing to go through /login (which has
+    its own dedicated tests already)."""
+
+    def _header(account: Account) -> dict:
+        token = create_access_token({"sub": str(account.owner_id), "role": "customer"})
+        return {"Authorization": f"Bearer {token}"}
+
+    return _header

@@ -1,7 +1,7 @@
 from app.schemas import LoginRequest, LoginResponse, RegisterRequest, RegisterResponse, TransferResponse
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
-from app.ledger import InsufficientFundsException, transfer
+from app.ledger import InsufficientFundsException,NotAccountOwnerException , transfer
 from fastapi import Depends
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -9,6 +9,7 @@ from app.users import login, register , EmailAlreadyExistsException
 from app.db import check_connection
 from app.database import get_db
 from app.schemas import TransferRequest
+from app.dependencies import get_current_user
 
 app = FastAPI()
 
@@ -28,8 +29,8 @@ def health():
         db_ok = False
     return {"status": "ok" if db_ok else "degraded", "db": db_ok}
 @app.post("/transfer", response_model=TransferResponse)
-def create_transfer(request: TransferRequest , db :Session = Depends(get_db)):
-    return transfer(db , request.idempotency_key , request.from_account_id , request.to_account_id , request.amount , request.description)
+def create_transfer(request: TransferRequest , current_user=Depends(get_current_user), db :Session = Depends(get_db)):
+    return transfer(db , request.idempotency_key , request.from_rib , request.to_rib , current_user.id , request.amount , request.description)
 
 @app.post("/register", response_model=RegisterResponse, status_code=201)
 def register_user(request: RegisterRequest, db: Session=Depends(get_db)):
@@ -60,5 +61,12 @@ def value_error_exception_handler(request, exc):
 def email_already_exists_exception_handler(request, exc):
     return JSONResponse(
         status_code=409,
+        content={"detail": str(exc)},
+    )
+
+@app.exception_handler(NotAccountOwnerException)
+def not_account_owner_exception_handler(request, exc):
+    return JSONResponse(
+        status_code=403,
         content={"detail": str(exc)},
     )
