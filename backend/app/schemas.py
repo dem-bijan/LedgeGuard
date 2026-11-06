@@ -20,3 +20,27 @@ class TransferResponse(BaseModel):
     created_at: datetime.datetime
 
     model_config = {"from_attributes": True}
+
+
+
+class RegisterRequest(BaseModel):
+    full_name: str
+    email: str 
+    password: str = Field(min_length=8)
+    role : str ="customer"
+
+class LoginRequest(BaseModel):
+    email: str
+    password: str
+
+class LoginResponse(BaseModel):
+    access_token: str
+    
+
+class RegisterResponse(BaseModel):
+    id: uuid.UUID
+    full_name: str
+    email: str
+    role: str
+
+    model_config = {"from_attributes": True}
