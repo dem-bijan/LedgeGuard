@@ -10,28 +10,22 @@ from fastapi.testclient import TestClient
 
 from app.ledger import create_transaction
 from app.main import app
-from app.models import Account
 
 client = TestClient(app)
 
 
-def _funded_account(session, name, amount, key):
-    account = Account(name=name, currency="MAD")
-    source = Account(name=f"source-{key}", currency="MAD")
-    session.add_all([account, source])
-    session.flush()
+def _fund(session, make_account, account, amount, key):
+    source = make_account(f"source-{key}")
     create_transaction(
         session, "seed", [(source.id, -amount), (account.id, amount)], idempotency_key=key
     )
     session.commit()
-    return account
 
 
-def test_transfer_endpoint_success(db_session):
-    alice = _funded_account(db_session, "Alice", Decimal("100.00"), "api-seed-1")
-    bob = Account(name="Bob", currency="MAD")
-    db_session.add(bob)
-    db_session.commit()
+def test_transfer_endpoint_success(db_session, make_account):
+    alice = make_account("Alice")
+    bob = make_account("Bob")
+    _fund(db_session, make_account, alice, Decimal("100.00"), "api-seed-1")
 
     response = client.post(
         "/transfer",
@@ -49,11 +43,10 @@ def test_transfer_endpoint_success(db_session):
     assert body["id"] is not None
 
 
-def test_transfer_endpoint_insufficient_funds_returns_409(db_session):
-    alice = _funded_account(db_session, "Alice", Decimal("10.00"), "api-seed-2")
-    bob = Account(name="Bob", currency="MAD")
-    db_session.add(bob)
-    db_session.commit()
+def test_transfer_endpoint_insufficient_funds_returns_409(db_session, make_account):
+    alice = make_account("Alice")
+    bob = make_account("Bob")
+    _fund(db_session, make_account, alice, Decimal("10.00"), "api-seed-2")
 
     response = client.post(
         "/transfer",
@@ -68,10 +61,9 @@ def test_transfer_endpoint_insufficient_funds_returns_409(db_session):
     assert response.status_code == 409
 
 
-def test_transfer_endpoint_rejects_non_positive_amount(db_session):
-    alice = Account(name="Alice", currency="MAD")
-    bob = Account(name="Bob", currency="MAD")
-    db_session.add_all([alice, bob])
+def test_transfer_endpoint_rejects_non_positive_amount(db_session, make_account):
+    alice = make_account("Alice")
+    bob = make_account("Bob")
     db_session.commit()
 
     response = client.post(

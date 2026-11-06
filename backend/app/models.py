@@ -3,15 +3,33 @@ import uuid
 from decimal import Decimal
 import datetime
 from sqlalchemy import UUID, ForeignKey, Numeric, func , DateTime
+
+
+
+
+
 class Base(DeclarativeBase):
     pass
+
+
+class User(Base):
+    __tablename__ = "users"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True , default=uuid.uuid4)
+    full_name: Mapped[str]
+    email: Mapped[str] = mapped_column(unique=True)
+    hashed_password: Mapped[str]
+    role: Mapped[str] 
+    created_at: Mapped[datetime.datetime] = mapped_column(DateTime(timezone=True),server_default=func.now())
 
 
 class Account(Base):
     __tablename__ = "accounts"
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True , default=uuid.uuid4)
-    name: Mapped[str]
+    owner_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id"),index=True)
+    rib: Mapped[str] = mapped_column(unique=True)
+    label: Mapped[str]
     currency: Mapped[str]
     created_at: Mapped[datetime.datetime] = mapped_column(DateTime(timezone=True),server_default=func.now())
 

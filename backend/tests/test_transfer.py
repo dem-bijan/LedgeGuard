@@ -15,63 +15,55 @@ import pytest
 from app.ledger import (
     InsufficientFundsException,
     create_transaction,
+    get_balance,
     transfer,
 )
-from app.models import Account
 
 
-def _account(session, name):
-    account = Account(name=name, currency="MAD")
-    session.add(account)
-    session.flush()
-    return account
-
-
-def _fund(session, account, amount, key):
+def _fund(session, make_account, account, amount, key):
     """Give an account a starting balance via a seed transaction from a
     throwaway funding source account."""
-    source = _account(session, f"funding-source-{key}")
+    source = make_account(f"funding-source-{key}")
     create_transaction(
         session, "seed funds", [(source.id, -amount), (account.id, amount)], idempotency_key=key
     )
 
 
-def test_transfer_moves_money_and_is_idempotent_on_replay(db_session):
-    alice = _account(db_session, "Alice")
-    bob = _account(db_session, "Bob")
-    _fund(db_session, alice, Decimal("100.00"), "seed-1")
+def test_transfer_moves_money_and_is_idempotent_on_replay(db_session, make_account):
+    alice = make_account("Alice")
+    bob = make_account("Bob")
+    _fund(db_session, make_account, alice, Decimal("100.00"), "seed-1")
     db_session.commit()
 
     txn1 = transfer(db_session, "transfer-key", alice.id, bob.id, Decimal("30.00"))
     txn2 = transfer(db_session, "transfer-key", alice.id, bob.id, Decimal("30.00"))
 
     assert txn1.id == txn2.id  # replay, not a second transfer
-    from app.ledger import get_balance
     assert get_balance(db_session, alice.id) == Decimal("70.00")
     assert get_balance(db_session, bob.id) == Decimal("30.00")
 
 
-def test_transfer_rejects_insufficient_funds(db_session):
-    alice = _account(db_session, "Alice")
-    bob = _account(db_session, "Bob")
-    _fund(db_session, alice, Decimal("10.00"), "seed-2")
+def test_transfer_rejects_insufficient_funds(db_session, make_account):
+    alice = make_account("Alice")
+    bob = make_account("Bob")
+    _fund(db_session, make_account, alice, Decimal("10.00"), "seed-2")
     db_session.commit()
 
     with pytest.raises(InsufficientFundsException):
         transfer(db_session, "transfer-key-2", alice.id, bob.id, Decimal("50.00"))
 
 
-def test_concurrent_transfers_cannot_overdraw_account(db_session, db_engine):
+def test_concurrent_transfers_cannot_overdraw_account(db_session, db_engine, make_account):
     """Alice has exactly 100.00. Two threads each try to transfer 80.00 out
     at the same instant. At most one can succeed -- if the lock didn't
     work, both could read balance=100 before either writes, and both would
     succeed, leaving Alice at -60.00: money created from nothing."""
     from sqlalchemy.orm import Session
 
-    alice = _account(db_session, "Alice")
-    bob = _account(db_session, "Bob")
-    carol = _account(db_session, "Carol")
-    _fund(db_session, alice, Decimal("100.00"), "seed-3")
+    alice = make_account("Alice")
+    bob = make_account("Bob")
+    carol = make_account("Carol")
+    _fund(db_session, make_account, alice, Decimal("100.00"), "seed-3")
     db_session.commit()
 
     barrier = threading.Barrier(2)
@@ -99,5 +91,4 @@ def test_concurrent_transfers_cannot_overdraw_account(db_session, db_engine):
     assert outcomes.count("success") == 1
     assert outcomes.count("rejected") == 1
 
-    from app.ledger import get_balance
     assert get_balance(db_session, alice.id) == Decimal("20.00")

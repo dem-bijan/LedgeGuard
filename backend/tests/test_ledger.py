@@ -14,19 +14,12 @@ from sqlalchemy import select
 from sqlalchemy.exc import DatabaseError
 
 from app.ledger import create_transaction
-from app.models import Account, LedgerEntry, Transaction
+from app.models import LedgerEntry, Transaction
 
 
-def _account(session, name):
-    account = Account(name=name, currency="MAD")
-    session.add(account)
-    session.flush()
-    return account
-
-
-def test_balanced_two_way_transfer_succeeds(db_session):
-    alice = _account(db_session, "Alice")
-    bob = _account(db_session, "Bob")
+def test_balanced_two_way_transfer_succeeds(db_session, make_account):
+    alice = make_account("Alice")
+    bob = make_account("Bob")
     db_session.commit()
 
     txn = create_transaction(
@@ -43,13 +36,13 @@ def test_balanced_two_way_transfer_succeeds(db_session):
     assert sum(e.amount for e in entries) == Decimal("0.00")
 
 
-def test_balanced_three_way_split_succeeds(db_session):
+def test_balanced_three_way_split_succeeds(db_session, make_account):
     """Proves the schema actually generalizes past 2 parties, per the
     fee-split example from the design discussion — not just a coincidence
     that 2-account transfers happen to work."""
-    alice = _account(db_session, "Alice")
-    bob = _account(db_session, "Bob")
-    bank_fees = _account(db_session, "BankFees")
+    alice = make_account("Alice")
+    bob = make_account("Bob")
+    bank_fees = make_account("BankFees")
     db_session.commit()
 
     txn = create_transaction(
@@ -70,9 +63,9 @@ def test_balanced_three_way_split_succeeds(db_session):
     assert sum(e.amount for e in entries) == Decimal("0.00")
 
 
-def test_unbalanced_transaction_is_rejected_with_no_trace(db_session):
-    alice = _account(db_session, "Alice")
-    bob = _account(db_session, "Bob")
+def test_unbalanced_transaction_is_rejected_with_no_trace(db_session, make_account):
+    alice = make_account("Alice")
+    bob = make_account("Bob")
     db_session.commit()
 
     with pytest.raises(ValueError):
@@ -87,11 +80,11 @@ def test_unbalanced_transaction_is_rejected_with_no_trace(db_session):
     assert db_session.scalars(select(LedgerEntry)).all() == []
 
 
-def test_db_trigger_blocks_unbalanced_entry_bypassing_create_transaction(db_session):
+def test_db_trigger_blocks_unbalanced_entry_bypassing_create_transaction(db_session, make_account):
     """create_transaction()'s Python check only protects callers who use it.
     This proves the invariant is also enforced by Postgres itself, for any
     code path that writes to ledger_entries directly."""
-    alice = _account(db_session, "Alice")
+    alice = make_account("Alice")
     db_session.commit()
 
     txn = Transaction(description="Direct bypass attempt")
