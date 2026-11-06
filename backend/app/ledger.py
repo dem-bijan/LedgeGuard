@@ -2,6 +2,7 @@
 from decimal import Decimal
 import uuid
 from sqlalchemy import func, select
+from app.models import User
 
 from app.models import Account, Transaction ,LedgerEntry
 
@@ -20,6 +21,13 @@ def create_transaction(session,description: str | None, entries: list[tuple[uuid
         session.add(obj)
     session.commit()
     return transaction
+
+
+
+def account_getter(session,user:User):
+    stmt = session.query(Account).filter_by(owner_id = user.id).all()
+    return stmt
+
 
 
 def get_account_for_update(session, account_id: uuid.UUID):

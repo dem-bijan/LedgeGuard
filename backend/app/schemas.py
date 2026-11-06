@@ -22,6 +22,12 @@ class TransferResponse(BaseModel):
 
     model_config = {"from_attributes": True}
 
+class AccountResponse(BaseModel):
+    id: uuid.UUID
+    rib: str
+    label: str
+    currency: str
+    balance: Decimal
 
 
 class RegisterRequest(BaseModel):

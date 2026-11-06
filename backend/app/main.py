@@ -1,14 +1,14 @@
 from app.schemas import LoginRequest, LoginResponse, RegisterRequest, RegisterResponse, TransferResponse
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
-from app.ledger import InsufficientFundsException,NotAccountOwnerException , transfer
+from app.ledger import InsufficientFundsException,NotAccountOwnerException , transfer , account_getter , get_balance
 from fastapi import Depends
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.users import login, register , EmailAlreadyExistsException
 from app.db import check_connection
 from app.database import get_db
-from app.schemas import TransferRequest
+from app.schemas import TransferRequest , AccountResponse
 from app.dependencies import get_current_user
 
 app = FastAPI()
@@ -43,6 +43,29 @@ def login_user(request: LoginRequest, db: Session = Depends(get_db)):
         return {"access_token": signature}
     else:
         raise ValueError("Invalid email or password")
+@app.get("/accounts")
+def get_accounts(db:Session=Depends(get_db) ,user = Depends(get_current_user)):
+    accounts =  account_getter(db,user)
+    return [
+        AccountResponse(id=a.id  , rib=a.rib , label=a.label,currency = a.currency , balance= get_balance(db,a.id)) for a in accounts
+    ]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#exception handlers 
 
 @app.exception_handler(InsufficientFundsException)
 def insufficient_funds_exception_handler(request, exc):
