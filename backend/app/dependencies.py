@@ -1,5 +1,4 @@
-from fastapi import Depends, HTTPException
-from fastapi.security import OAuth2PasswordBearer
+from fastapi import Depends, HTTPException , Cookie
 import jwt
 from app.auth import decode_access_token
 from app.models import User
@@ -7,11 +6,14 @@ from app.database import get_db
 from sqlalchemy.orm import Session
 
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
 
-def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+
+def get_current_user(access_token: str | None = Cookie(default=None), db: Session = Depends(get_db)):
+    if access_token is None :
+            raise HTTPException(status_code=401,detail="Not authenticated")
+        
     try:
-        payload= decode_access_token(token) 
+        payload= decode_access_token(access_token) 
     except jwt.PyJWTError:
         raise HTTPException(status_code=401, detail="Invalid/Expired token")
     user_id = payload.get("sub") 

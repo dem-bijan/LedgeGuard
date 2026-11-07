@@ -10,7 +10,7 @@ from app.main import app
 client = TestClient(app)
 
 
-def test_get_accounts_returns_only_own_accounts_with_balances(db_session, make_account, auth_header):
+def test_get_accounts_returns_only_own_accounts_with_balances(db_session, make_account, auth_cookies):
     alice = make_account("Alice Checking")
     source = make_account("Source")
     create_transaction(
@@ -19,7 +19,7 @@ def test_get_accounts_returns_only_own_accounts_with_balances(db_session, make_a
     )
     db_session.commit()
 
-    response = client.get("/accounts", headers=auth_header(alice))
+    response = client.get("/accounts", cookies=auth_cookies(alice))
 
     assert response.status_code == 200
     body = response.json()

@@ -31,6 +31,7 @@ def login(session , email , password) :
 
 
 
+
 class EmailAlreadyExistsException(Exception):
     pass
 

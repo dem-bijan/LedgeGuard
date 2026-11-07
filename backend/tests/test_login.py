@@ -20,7 +20,11 @@ def test_login_succeeds_and_returns_a_token(db_session):
     response = client.post("/login", json={"email": "login-success@example.com", "password": "supersecret123"})
 
     assert response.status_code == 200
-    token = response.json()["access_token"]
+    assert response.json() == {"message": "Login successful"}
+
+    # the token lives in an httpOnly cookie now, never in the JSON body
+    token = response.cookies.get("access_token")
+    assert token is not None
     assert token.count(".") == 2  # header.payload.signature
 
 

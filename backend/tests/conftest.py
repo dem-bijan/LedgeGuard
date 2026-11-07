@@ -67,13 +67,14 @@ def make_account(db_session):
 
 
 @pytest.fixture
-def auth_header():
-    """Factory: auth_header(account) -> a real Authorization header for
-    that account's owner, without needing to go through /login (which has
-    its own dedicated tests already)."""
+def auth_cookies():
+    """Factory: auth_cookies(account) -> a real auth cookie dict for that
+    account's owner, without needing to go through /login (which has its
+    own dedicated tests already). The token now lives in an httpOnly
+    cookie, not the Authorization header."""
 
-    def _header(account: Account) -> dict:
+    def _cookies(account: Account) -> dict:
         token = create_access_token({"sub": str(account.owner_id), "role": "customer"})
-        return {"Authorization": f"Bearer {token}"}
+        return {"access_token": token}
 
-    return _header
+    return _cookies

@@ -2,14 +2,14 @@ from app.schemas import LoginRequest, LoginResponse, RegisterRequest, RegisterRe
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 from app.ledger import InsufficientFundsException,NotAccountOwnerException , transfer , account_getter , get_balance
-from fastapi import Depends
-from fastapi import FastAPI
+from fastapi import Depends , FastAPI , Response
 from fastapi.middleware.cors import CORSMiddleware
 from app.users import login, register , EmailAlreadyExistsException
 from app.db import check_connection
 from app.database import get_db
 from app.schemas import TransferRequest , AccountResponse
 from app.dependencies import get_current_user
+
 
 app = FastAPI()
 
@@ -18,6 +18,7 @@ app.add_middleware(
     allow_origins=["http://localhost:3000"],
     allow_methods=["*"],
     allow_headers=["*"],
+    allow_credentials=True
 )
 
 
@@ -36,13 +37,21 @@ def create_transfer(request: TransferRequest , current_user=Depends(get_current_
 def register_user(request: RegisterRequest, db: Session=Depends(get_db)):
     return register(db, request.full_name, request.email, request.password, request.role)
 
-@app.post("/login", response_model=LoginResponse)
-def login_user(request: LoginRequest, db: Session = Depends(get_db)):
+@app.post("/login")
+def login_user(request: LoginRequest,response: Response, db: Session = Depends(get_db)):
     signature = login(db, request.email, request.password)
-    if signature:
-        return {"access_token": signature}
-    else:
+    if signature is not None:
+        response.set_cookie(
+            key="access_token",
+            value=signature,
+            httponly=True,
+            samesite="lax",
+            secure=False
+        )
+        return {"message":"Login successful"}
+    else :
         raise ValueError("Invalid email or password")
+    
 @app.get("/accounts")
 def get_accounts(db:Session=Depends(get_db) ,user = Depends(get_current_user)):
     accounts =  account_getter(db,user)

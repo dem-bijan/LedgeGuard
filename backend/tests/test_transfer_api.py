@@ -23,14 +23,14 @@ def _fund(session, make_account, account, amount, key):
     session.commit()
 
 
-def test_transfer_endpoint_success(db_session, make_account, auth_header):
+def test_transfer_endpoint_success(db_session, make_account, auth_cookies):
     alice = make_account("Alice")
     bob = make_account("Bob")
     _fund(db_session, make_account, alice, Decimal("100.00"), "api-seed-1")
 
     response = client.post(
         "/transfer",
-        headers=auth_header(alice),
+        cookies=auth_cookies(alice),
         json={
             "idempotency_key": "api-key-success",
             "from_rib": alice.rib,
@@ -45,14 +45,14 @@ def test_transfer_endpoint_success(db_session, make_account, auth_header):
     assert body["id"] is not None
 
 
-def test_transfer_endpoint_insufficient_funds_returns_409(db_session, make_account, auth_header):
+def test_transfer_endpoint_insufficient_funds_returns_409(db_session, make_account, auth_cookies):
     alice = make_account("Alice")
     bob = make_account("Bob")
     _fund(db_session, make_account, alice, Decimal("10.00"), "api-seed-2")
 
     response = client.post(
         "/transfer",
-        headers=auth_header(alice),
+        cookies=auth_cookies(alice),
         json={
             "idempotency_key": "api-key-insufficient",
             "from_rib": alice.rib,
@@ -64,14 +64,14 @@ def test_transfer_endpoint_insufficient_funds_returns_409(db_session, make_accou
     assert response.status_code == 409
 
 
-def test_transfer_endpoint_rejects_non_positive_amount(db_session, make_account, auth_header):
+def test_transfer_endpoint_rejects_non_positive_amount(db_session, make_account, auth_cookies):
     alice = make_account("Alice")
     bob = make_account("Bob")
     db_session.commit()
 
     response = client.post(
         "/transfer",
-        headers=auth_header(alice),
+        cookies=auth_cookies(alice),
         json={
             "idempotency_key": "api-key-invalid",
             "from_rib": alice.rib,
@@ -101,7 +101,7 @@ def test_transfer_endpoint_requires_auth(db_session, make_account):
     assert response.status_code == 401
 
 
-def test_transfer_endpoint_rejects_non_owner(db_session, make_account, auth_header):
+def test_transfer_endpoint_rejects_non_owner(db_session, make_account, auth_cookies):
     alice = make_account("Alice")
     bob = make_account("Bob")
     mallory = make_account("Mallory")
@@ -110,7 +110,7 @@ def test_transfer_endpoint_rejects_non_owner(db_session, make_account, auth_head
     # Mallory is logged in, but tries to move money out of Alice's account
     response = client.post(
         "/transfer",
-        headers=auth_header(mallory),
+        cookies=auth_cookies(mallory),
         json={
             "idempotency_key": "api-key-not-owner",
             "from_rib": alice.rib,
