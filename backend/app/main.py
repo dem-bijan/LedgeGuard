@@ -1,4 +1,4 @@
-from app.schemas import LoginRequest, LoginResponse, RegisterRequest, RegisterResponse, TransferResponse
+from app.schemas import LoginRequest, RegisterRequest, RegisterResponse, TransferResponse
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 from app.ledger import InsufficientFundsException,NotAccountOwnerException , transfer , account_getter , get_balance
@@ -9,7 +9,7 @@ from app.db import check_connection
 from app.database import get_db
 from app.schemas import TransferRequest , AccountResponse
 from app.dependencies import get_current_user
-
+from app.models import User
 
 app = FastAPI()
 
@@ -60,7 +60,9 @@ def get_accounts(db:Session=Depends(get_db) ,user = Depends(get_current_user)):
     ]
 
 
-
+@app.get("/me", response_model=RegisterResponse)
+def get_me(current_user:User= Depends(get_current_user)):
+    return current_user
 
 
 
