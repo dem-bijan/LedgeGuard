@@ -3,7 +3,7 @@ from decimal import Decimal
 import uuid
 from sqlalchemy import func, select
 from app.models import User
-
+from sqlalchemy.exc import NoResultFound
 from app.models import Account, Transaction ,LedgerEntry
 
 
@@ -36,7 +36,10 @@ def get_account_for_update(session, account_id: uuid.UUID):
 
 def get_account_by_rib(session, rib:str)-> Account :
     stmt = select(Account).where(Account.rib == rib)
-    return session.execute(stmt).scalar_one()
+    try: 
+        return session.execute(stmt).scalar_one()
+    except NoResultFound:
+        raise AccountNotFoundException(f"No account found for this RIB: {rib}")
 
 def get_balance(session , account_id: uuid.UUID) -> Decimal:
     stmt = select(func.sum(LedgerEntry.amount)).where(LedgerEntry.account_id == account_id)
@@ -70,4 +73,7 @@ class InsufficientFundsException(Exception):
     pass
 
 class NotAccountOwnerException(Exception):
+    pass
+
+class AccountNotFoundException(Exception):
     pass

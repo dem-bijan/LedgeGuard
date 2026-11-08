@@ -1,7 +1,7 @@
 from app.schemas import LoginRequest, RegisterRequest, RegisterResponse, TransferResponse
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
-from app.ledger import InsufficientFundsException,NotAccountOwnerException , transfer , account_getter , get_balance
+from app.ledger import InsufficientFundsException,NotAccountOwnerException ,AccountNotFoundException, transfer , account_getter , get_balance
 from fastapi import Depends , FastAPI , Response
 from fastapi.middleware.cors import CORSMiddleware
 from app.users import login, register , EmailAlreadyExistsException
@@ -104,3 +104,7 @@ def not_account_owner_exception_handler(request, exc):
         status_code=403,
         content={"detail": str(exc)},
     )
+
+@app.exception_handler(AccountNotFoundException)
+def account_not_found_exception(req,exc):
+    return JSONResponse(status_code=404,content={"detail": str(exc)})

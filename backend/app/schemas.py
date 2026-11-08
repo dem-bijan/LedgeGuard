@@ -1,6 +1,6 @@
 import datetime
 
-from pydantic import BaseModel , Field
+from pydantic import BaseModel , Field, EmailStr
 import uuid 
 from decimal import Decimal
 
@@ -32,7 +32,7 @@ class AccountResponse(BaseModel):
 
 class RegisterRequest(BaseModel):
     full_name: str
-    email: str 
+    email: EmailStr 
     password: str = Field(min_length=8)
     role : str ="customer"
 
@@ -47,7 +47,7 @@ class LoginResponse(BaseModel):
 class RegisterResponse(BaseModel):
     id: uuid.UUID
     full_name: str
-    email: str
+    email: EmailStr
     role: str
 
     model_config = {"from_attributes": True}
