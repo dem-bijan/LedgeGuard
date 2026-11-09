@@ -51,7 +51,7 @@ export default function TransfertForm({accounts,onTransfertSuccess}:{accounts:Ac
             setAmount("")
             setDescription("")
         })
-        .catch(()=>{setError("something Wrong Occured")})
+        .catch((err)=>{setError(err.response?.data?.detail ?? "Network error")})
         .finally(()=>setSubmitting(false))
 
     }
@@ -59,14 +59,14 @@ export default function TransfertForm({accounts,onTransfertSuccess}:{accounts:Ac
     return (
         <form
             onSubmit={onSubmit}
-            className="flex flex-col gap-4 rounded-2xl bg-white p-6 shadow-sm dark:bg-zinc-900"
+            className="flex flex-col gap-4 rounded-2xl border border-border bg-surface p-6 shadow-sm"
         >
-            <h2 className="text-base font-semibold text-zinc-900 dark:text-zinc-50">
+            <h2 className="text-base font-semibold tracking-tight text-foreground">
                 Send money
             </h2>
 
             <div className="flex flex-col gap-1.5">
-                <label htmlFor="fromRib" className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                <label htmlFor="fromRib" className="text-sm font-medium text-foreground">
                     From
                 </label>
                 <select
@@ -74,7 +74,7 @@ export default function TransfertForm({accounts,onTransfertSuccess}:{accounts:Ac
                     value={fromRib}
                     onChange={(e) => setFromRib(e.target.value)}
                     required
-                    className="rounded-lg border border-zinc-200 bg-transparent px-3 py-2 text-sm text-zinc-900 outline-none transition focus:border-zinc-900 dark:border-zinc-700 dark:text-zinc-50 dark:focus:border-zinc-50"
+                    className="rounded-lg border border-border bg-transparent px-3 py-2 text-sm text-foreground outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/15"
                 >
                     <option value="" disabled>
                         Select an account
@@ -88,7 +88,7 @@ export default function TransfertForm({accounts,onTransfertSuccess}:{accounts:Ac
             </div>
 
             <div className="flex flex-col gap-1.5">
-                <label htmlFor="toRib" className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                <label htmlFor="toRib" className="text-sm font-medium text-foreground">
                     To (RIB)
                 </label>
                 <input
@@ -97,12 +97,12 @@ export default function TransfertForm({accounts,onTransfertSuccess}:{accounts:Ac
                     onChange={(e) => setToRib(e.target.value)}
                     placeholder="24-digit RIB"
                     required
-                    className="rounded-lg border border-zinc-200 bg-transparent px-3 py-2 font-mono text-sm text-zinc-900 outline-none transition focus:border-zinc-900 dark:border-zinc-700 dark:text-zinc-50 dark:focus:border-zinc-50"
+                    className="rounded-lg border border-border bg-transparent px-3 py-2 font-mono text-sm text-foreground outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/15"
                 />
             </div>
 
             <div className="flex flex-col gap-1.5">
-                <label htmlFor="amount" className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                <label htmlFor="amount" className="text-sm font-medium text-foreground">
                     Amount
                 </label>
                 <input
@@ -114,31 +114,31 @@ export default function TransfertForm({accounts,onTransfertSuccess}:{accounts:Ac
                     min="0.01"
                     placeholder="0.00"
                     required
-                    className="rounded-lg border border-zinc-200 bg-transparent px-3 py-2 text-sm text-zinc-900 outline-none transition focus:border-zinc-900 dark:border-zinc-700 dark:text-zinc-50 dark:focus:border-zinc-50"
+                    className="rounded-lg border border-border bg-transparent px-3 py-2 font-mono text-sm text-foreground outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/15"
                 />
             </div>
 
             <div className="flex flex-col gap-1.5">
-                <label htmlFor="description" className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                    Note <span className="font-normal text-zinc-400">(optional)</span>
+                <label htmlFor="description" className="text-sm font-medium text-foreground">
+                    Note <span className="font-normal text-muted">(optional)</span>
                 </label>
                 <input
                     id="description"
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
                     placeholder="What's this for?"
-                    className="rounded-lg border border-zinc-200 bg-transparent px-3 py-2 text-sm text-zinc-900 outline-none transition focus:border-zinc-900 dark:border-zinc-700 dark:text-zinc-50 dark:focus:border-zinc-50"
+                    className="rounded-lg border border-border bg-transparent px-3 py-2 text-sm text-foreground outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/15"
                 />
             </div>
 
             {error && (
-                <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+                <p className="text-sm text-danger">{error}</p>
             )}
 
             <button
                 type="submit"
                 disabled={submitting}
-                className="mt-2 rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-zinc-700 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
+                className="mt-2 rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-accent-foreground transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
             >
                 {submitting ? "Sending..." : "Send"}
             </button>

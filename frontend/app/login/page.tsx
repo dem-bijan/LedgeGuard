@@ -29,18 +29,30 @@ export default function Login() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 px-4 dark:bg-black">
-      <div className="w-full max-w-sm rounded-2xl bg-white p-8 shadow-sm dark:bg-zinc-900">
-        <h1 className="mb-1 text-xl font-semibold text-zinc-900 dark:text-zinc-50">
+    <div className="flex min-h-screen flex-col items-center justify-center gap-8 bg-background px-4">
+      <div className="reveal flex items-center gap-2.5" style={{ "--reveal-delay": "0ms" } as React.CSSProperties}>
+        <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-accent text-sm font-bold text-accent-foreground">
+          L
+        </span>
+        <span className="text-base font-semibold tracking-tight text-foreground">
+          LedgerGuard
+        </span>
+      </div>
+
+      <div
+        className="reveal w-full max-w-sm rounded-2xl border border-border bg-surface p-8 shadow-sm"
+        style={{ "--reveal-delay": "80ms" } as React.CSSProperties}
+      >
+        <h1 className="mb-1 text-2xl font-bold tracking-tight text-foreground">
           Welcome back
         </h1>
-        <p className="mb-6 text-sm text-zinc-500 dark:text-zinc-400">
-          Log in to LedgerGuard
+        <p className="mb-6 text-sm text-muted">
+          Log in to your account
         </p>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <div className="flex flex-col gap-1.5">
-            <label htmlFor="email" className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+            <label htmlFor="email" className="text-sm font-medium text-foreground">
               Email
             </label>
             <input
@@ -49,12 +61,12 @@ export default function Login() {
               onChange={(e) => setEmail(e.target.value)}
               type="email"
               placeholder="you@example.com"
-              className="rounded-lg border border-zinc-200 bg-transparent px-3 py-2 text-sm text-zinc-900 outline-none transition focus:border-zinc-900 dark:border-zinc-700 dark:text-zinc-50 dark:focus:border-zinc-50"
+              className="rounded-lg border border-border bg-transparent px-3 py-2 text-sm text-foreground outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/15"
             />
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <label htmlFor="password" className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+            <label htmlFor="password" className="text-sm font-medium text-foreground">
               Password
             </label>
             <input
@@ -63,17 +75,17 @@ export default function Login() {
               onChange={(e) => setPassword(e.target.value)}
               type="password"
               placeholder="••••••••"
-              className="rounded-lg border border-zinc-200 bg-transparent px-3 py-2 text-sm text-zinc-900 outline-none transition focus:border-zinc-900 dark:border-zinc-700 dark:text-zinc-50 dark:focus:border-zinc-50"
+              className="rounded-lg border border-border bg-transparent px-3 py-2 text-sm text-foreground outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/15"
             />
           </div>
 
           {error && (
-            <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+            <p className="text-sm text-danger">{error}</p>
           )}
 
           <button
             type="submit"
-            className="mt-2 rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-zinc-700 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
+            className="mt-2 rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-accent-foreground transition hover:opacity-90"
           >
             Log in
           </button>
