@@ -1,6 +1,6 @@
 import axios from "axios"
 
-import { mapUser } from "./maps"
+import { mapUser , mapPendingTransfer } from "./maps"
 
 // withCredentials: true makes the browser send the httpOnly auth cookie
 // on every request through this instance. No token is attached manually
@@ -19,6 +19,10 @@ const api = axios.create({
 api.interceptors.response.use((response)=>{
     if(response.config.url === "/me"){
         response.data = mapUser(response.data);
+    }
+    if(response.config.url ==="/pending-transfers"){
+        const data = response.data.map((dat:{id:string, idempotency_key:string|null , description:string|null , status:string, execute_at:string  , amount:string , to_rib:string })=>mapPendingTransfer(dat))
+        response.data =  data
     }
     return response
 })

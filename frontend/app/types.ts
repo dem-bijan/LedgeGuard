@@ -18,3 +18,23 @@ export interface Account{
     currency: string;
     balance: string
 }
+
+export interface PendingTransfer{
+  id: string;
+  idempotencyKey: string | null;
+  description: string | null;
+  status: string;
+  executeAt: string;
+  amount: string;
+  toRib: string;
+}
+
+export interface TransferRequest{
+    idempotency_key: string;
+    from_rib:string;
+    to_rib:string;
+    amount:string;
+    description:string | null
+    confirm_flagged_recipient: boolean | false
+
+}

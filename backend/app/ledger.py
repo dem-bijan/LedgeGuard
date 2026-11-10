@@ -4,7 +4,8 @@ import uuid
 from sqlalchemy import func, select
 from app.models import User
 from sqlalchemy.exc import NoResultFound
-from app.models import Account, Transaction ,LedgerEntry ,PendingTransfer
+from app.models import Account, Transaction ,LedgerEntry ,PendingTransfer 
+from app.schemas import PendingTransferResponse
 import datetime
 
                                                                                     
@@ -32,7 +33,9 @@ import datetime
 #     created_at: Mapped[datetime.datetime] = mapped_column(DateTime(timezone=True),server_default=func.now())
 
 
-COOLING_OFF_PERIOD = datetime.timedelta(minutes=2) # Number of minutes set for a transaction to a new rib to take place
+COOLING_OFF_PERIOD = datetime.timedelta(seconds=2) # Number of minutes set for a transaction to a new rib to take place
+PASS_THROUGH_WINDOW = datetime.timedelta(hours=10)
+THRESHOLD = Decimal("0.8")
 
 
 def create_transaction(session,description: str | None, entries: list[tuple[uuid.UUID,Decimal]] ,idempotency_key: str|None = None) -> Transaction:
@@ -67,7 +70,9 @@ def sweeper(session, user_id :uuid.UUID):
         else:
             transfer.status = "executed"
             executed_transaction = create_transaction(session,transfer.description , [(transfer.from_account_id, -transfer.amount), (transfer.to_account_id,transfer.amount)] , transfer.idempotency_key)
+            pass_through_checker(session, transfer.to_account_id)
             transfer.executed_transaction_id = executed_transaction.id
+    
     session.commit()
 
 def account_getter(session,user:User):
@@ -85,6 +90,13 @@ def get_account_by_rib(session, rib:str)-> Account :
     except NoResultFound:
         raise AccountNotFoundException(f"No account found for this RIB: {rib}")
 
+def get_account_by_id(session, account_id:uuid.UUID)-> Account :
+    stmt = select(Account).where(Account.id == account_id)
+    try: 
+        return session.execute(stmt).scalar_one()
+    except NoResultFound:
+        raise AccountNotFoundException(f"No account found for this ID")
+
 def get_balance(session , account_id: uuid.UUID) -> Decimal:
     stmt = select(func.sum(LedgerEntry.amount)).where(LedgerEntry.account_id == account_id)
     result = session.execute(stmt).scalar()
@@ -101,7 +113,7 @@ def has_prior_transfers(session , from_account_id , to_account_id) -> bool:
                        LedgerEntry.transaction_id.in_(touched_accounts_ids))).first()        
     return res is not None
 
-def transfer(session, idempotency_key: str , from_rib: str , to_rib: str, requester_id:uuid.UUID , amount: Decimal , description: str | None = None) -> Transaction | PendingTransfer:
+def transfer(session, idempotency_key: str , from_rib: str , to_rib: str, requester_id:uuid.UUID , amount: Decimal , description: str | None = None ,confirm_flagged_recipient:bool= False) -> Transaction | PendingTransfer:
     if from_rib == to_rib:
         raise ValueError("Cannot transfer to the same account")
     stmt = select(Transaction).where(Transaction.idempotency_key == idempotency_key)                        
@@ -112,12 +124,19 @@ def transfer(session, idempotency_key: str , from_rib: str , to_rib: str, reques
     if from_account.owner_id != requester_id:
                 raise NotAccountOwnerException("You are not the owner of the from account") # can this be really a case ?sounds odd (avoidable by the front end)
     to_account = get_account_by_rib(session, to_rib)
+    if from_account.flagged:
+        raise AccountFlaggedException("Cannot do a transacion from a flagegd account , Please Contact your bank")
+    if to_account.flagged and not confirm_flagged_recipient:
+        raise FlaggedRecepientException("This recepient is a suspicious account , are you sure you want to complete this transfer ?")
     f_a = get_account_for_update(session, from_account.id)
     balance = get_balance(session, from_account.id)
     if balance < amount:
                 raise InsufficientFundsException("Insufficient funds")
+    
     if has_prior_transfers(session ,from_account.id, to_account.id):    
-        return create_transaction(session, description, [(from_account.id, -amount), (to_account.id, amount)], idempotency_key)
+        transaction =  create_transaction(session, description, [(from_account.id, -amount), (to_account.id, amount)], idempotency_key)
+        pass_through_checker(session, to_account.id)
+        return transaction
     else:
         return create_pending_transfer(session, from_account.id ,to_account.id,from_account.owner_id,amount ,description =description ,idempotency_key =idempotency_key)
 
@@ -139,6 +158,25 @@ def get_pending_transfers_for_user(session , user_id):
     return session.execute(statement).scalars().all()
 
 
+def pass_through_checker(session, account_id:uuid.UUID ):
+    window_start = datetime.datetime.now(datetime.timezone.utc) - PASS_THROUGH_WINDOW
+    outbounds = session.execute(select(func.sum(LedgerEntry.amount)).where(LedgerEntry.amount <0 , LedgerEntry.account_id == account_id, LedgerEntry.created_at > window_start)).scalar() 
+    if outbounds is None :
+        outbounds = Decimal(0)
+    outbounds = -outbounds
+    inbounds = session.execute(select(func.sum(LedgerEntry.amount)).where(LedgerEntry.amount >=0 , LedgerEntry.account_id == account_id ,LedgerEntry.created_at > window_start)).scalar()
+    if inbounds is None :
+        inbounds = Decimal(0)
+    if inbounds <Decimal(100) :
+        return
+    account = get_account_by_id(session,account_id)
+    if outbounds >= THRESHOLD * inbounds:
+        account.flagged = True
+        account.flagged_at = datetime.datetime.now(datetime.timezone.utc)
+        account.flagging_reason = "Suspicious activity"
+        session.commit()
+
+
 class InsufficientFundsException(Exception):
     pass
 
@@ -148,4 +186,9 @@ class NotAccountOwnerException(Exception):
 class AccountNotFoundException(Exception):
     pass
 class PendingTransferNotCancellableException(Exception):
+    pass
+
+class AccountFlaggedException(Exception):
+    pass
+class FlaggedRecepientException(Exception):
     pass

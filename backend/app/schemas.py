@@ -12,6 +12,7 @@ class TransferRequest(BaseModel):
     to_rib: str
     amount: Decimal = Field(gt=Decimal(0))
     description: str | None = None
+    confirm_flagged_recipient: bool = False
 
 
 class TransferResponse(BaseModel):
@@ -28,6 +29,8 @@ class PendingTransferResponse(BaseModel):
     description :str |None = None
     status: str
     execute_at: datetime.datetime
+    amount:Decimal
+    to_rib:str
 
 
     model_config ={"from_attributes":True}

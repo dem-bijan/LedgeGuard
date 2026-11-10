@@ -1,4 +1,4 @@
-import type { User } from "../types";
+import type { PendingTransfer, User } from "../types";
 
 // The one translation boundary between the backend's snake_case JSON and
 // the frontend's camelCase User type. Called from both the client-side
@@ -12,4 +12,17 @@ export function mapUser(data: { id: string; email: string; full_name: string; ro
     fullName: data.full_name,
     role: data.role,
   };
+}
+
+
+export function mapPendingTransfer(data:{id:string, idempotency_key:string|null , description:string|null , status:string, execute_at:string  , amount:string , to_rib:string }): PendingTransfer{
+  return {
+    id: data.id,
+  idempotencyKey: data.idempotency_key,
+  description: data.description,
+  status: data.status,
+  executeAt: data.execute_at,
+  amount: data.amount,
+  toRib: data.to_rib
+  }
 }

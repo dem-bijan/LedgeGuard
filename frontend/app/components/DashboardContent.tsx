@@ -4,6 +4,7 @@ import type { User, Account } from "../types"
 import { useEffect, useState, type CSSProperties } from "react"
 import api from "../lib/api"
 import TransfertForm from "./TransferForm"
+import PendingTransfers from "./PendingTransfers"
 
 export default function DashboardContent({ user }: { user: User }) {
   const [accounts, setAccounts] = useState<Account[]>([])
@@ -116,7 +117,11 @@ export default function DashboardContent({ user }: { user: User }) {
             ))}
           </div>
         )}
-        <div className="reveal" style={delay(160 + accounts.length * 50 + 50)}>
+        <div className="reveal mb-10" style={delay(160 + accounts.length * 50 + 50)}>
+          <PendingTransfers />
+        </div>
+
+        <div className="reveal" style={delay(160 + accounts.length * 50 + 100)}>
           <TransfertForm accounts={accounts} onTransfertSuccess={fetchAccounts}></TransfertForm>
         </div>
       </div>

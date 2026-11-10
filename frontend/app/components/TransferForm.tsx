@@ -1,27 +1,9 @@
 "use client"
 import api from "../lib/api"
 import { useState } from "react"
-import { Account } from "../types"
+import { Account ,TransferRequest } from "../types"
 
 
-
-
-// class TransferRequest(BaseModel):
-//     idempotency_key: str
-    
-//     from_rib: str
-//     to_rib: str
-//     amount: Decimal = Field(gt=Decimal(0))
-//     description: str | None = None
-
-interface TransferRequest{
-    idempotency_key: string;
-    from_rib:string;
-    to_rib:string;
-    amount:string;
-    description:string | null
-
-}
 
 export default function TransfertForm({accounts,onTransfertSuccess}:{accounts:Account[],onTransfertSuccess:()=>void}){
     const [idempotencyKey,setIdempotencyKey] = useState(()=>crypto.randomUUID())
@@ -31,8 +13,10 @@ export default function TransfertForm({accounts,onTransfertSuccess}:{accounts:Ac
     const [description, setDescription] = useState("")
     const [error, setError] = useState("")
     const [submitting, setSubmitting] = useState(false)
+    const [flagged, setFlagged] = useState(false)
 
-    function onSubmit(e:React.FormEvent){
+
+    function submitTransfer(e:React.FormEvent , confirmation:boolean) {
         e.preventDefault()
         setSubmitting(true)
         setError("")
@@ -41,7 +25,8 @@ export default function TransfertForm({accounts,onTransfertSuccess}:{accounts:Ac
             from_rib: fromRib,
             to_rib:toRib,
             amount: String(amount),
-            description: description
+            description: description,
+            confirm_flagged_recipient: confirmation
         }
         api.post("/transfer", requested)
         .then(()=>{
@@ -51,8 +36,28 @@ export default function TransfertForm({accounts,onTransfertSuccess}:{accounts:Ac
             setAmount("")
             setDescription("")
         })
-        .catch((err)=>{setError(err.response?.data?.detail ?? "Network error")})
-        .finally(()=>setSubmitting(false))
+        .catch((err)=>{
+            if (! confirmation &&err.response?.status === 428){
+                setFlagged(true)
+            }
+            setError(err.response?.data?.detail ?? "Network error")})
+        .finally(()=>{
+            setSubmitting(false)
+            if (confirmation) {
+                setFlagged(false)
+            }
+        })
+
+    }
+
+
+    function onSubmit(e:React.FormEvent){
+        submitTransfer(e,false)
+
+    }
+
+    function confirmTheTransaction(e:React.FormEvent){
+        submitTransfer(e,true)
 
     }
 
@@ -142,6 +147,9 @@ export default function TransfertForm({accounts,onTransfertSuccess}:{accounts:Ac
             >
                 {submitting ? "Sending..." : "Send"}
             </button>
+            {flagged && (
+                <button type="button" onClick={confirmTheTransaction}> This Account is flagged , do you want to confirm your transaction anyway?</button>
+            )}
         </form>
     )
 }
