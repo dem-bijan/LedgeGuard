@@ -22,6 +22,17 @@ class TransferResponse(BaseModel):
 
     model_config = {"from_attributes": True}
 
+class PendingTransferResponse(BaseModel):
+    id : uuid.UUID
+    idempotency_key:str | None = None
+    description :str |None = None
+    status: str
+    execute_at: datetime.datetime
+
+
+    model_config ={"from_attributes":True}
+
+
 class AccountResponse(BaseModel):
     id: uuid.UUID
     rib: str
